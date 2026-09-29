@@ -70,9 +70,39 @@ Why admin rather than something narrower? Creating the website stack makes an IA
 narrower predefined sets (such as `PowerUserAccess`) can't do. If others only need to look around, give them
 a second permission set with `ReadOnlyAccess` instead.
 
+### Alternative: sign in with the charity's Google Workspace accounts
+
+Instead of creating users in step 4, Identity Center can use Google Workspace as its identity source, so
+committee members sign in to AWS with their existing Google account (and Google's 2-Step Verification).
+Decide this before creating users by hand, because switching the identity source later changes how users
+are managed. You need to be a Google Workspace super admin.
+
+1. **Google Admin console → Apps → Web and mobile apps → Add app → Search for apps**, search for
+   *AWS IAM Identity Center* and add it. Download the **IdP metadata** file it offers.
+2. **IAM Identity Center → Settings → Identity source → Actions → Change identity source → External identity
+   provider**. Upload Google's metadata file, and copy the **ACS URL** and **issuer URL** that AWS shows into the
+   Google app's service provider details. Finish the change in AWS.
+3. Back in **Identity Center → Settings**, turn on **Automatic provisioning** and copy the **SCIM endpoint** and
+   **access token** (shown only once).
+4. In the Google app, open **Auto-provisioning**, paste the endpoint and token, and turn it on. Then set
+   **User access** to *ON* for only the people (an organisational unit or group) who should reach AWS.
+5. Once their users appear under **Identity Center → Users**, assign them the `AdministratorAccess` permission set
+   as in step 4.4.
+
+Things to know:
+
+- **MFA moves to Google.** Identity Center's own MFA settings no longer apply, so make sure 2-Step Verification
+  is enforced for those Google accounts.
+- **The SCIM token expires after a year.** When it does, new people and changes stop syncing until you create a
+  new token in Identity Center and paste it into Google.
+- **Removing someone's Google account removes their AWS access**, which is the main benefit for a committee that
+  changes every year.
+- **Root is separate.** The root user still signs in with its own email, password and MFA, and is the way back in
+  if the Google connection ever breaks.
+
 ## 5. Sign in
 
-**In the browser:** open the access portal URL, sign in with your new user and MFA, expand the account, and click
+**In the browser:** open the access portal URL, sign in with your new user and MFA (or your Google account), expand the account, and click
 **AdministratorAccess** to reach the console. Do this instead of signing in as root.
 
 **On the command line:** install the [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html), then run:
