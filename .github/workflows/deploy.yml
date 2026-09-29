@@ -1,0 +1,43 @@
+name: Deploy to AWS
+
+# Uploads the site to S3 and clears the CloudFront cache on every push to main.
+# Does nothing until the repository variables below are set; see infra/README.md.
+#   AWS_DEPLOY_ROLE_ARN, AWS_S3_BUCKET, AWS_CLOUDFRONT_DISTRIBUTION_ID
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.AWS_DEPLOY_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Upload site
+        env:
+          BUCKET: ${{ vars.AWS_S3_BUCKET }}
+        run: >-
+          aws s3 sync . "s3://$BUCKET" --delete
+          --exclude ".git/*" --exclude ".github/*" --exclude "infra/*"
+          --exclude ".gitignore" --exclude "README.md" --exclude "LICENSE"
+
+      - name: Clear CloudFront cache
+        env:
+          DISTRIBUTION_ID: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID }}
+        run: aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" --paths "/*"
