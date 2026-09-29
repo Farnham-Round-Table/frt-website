@@ -61,7 +61,8 @@ The PayPal donate buttons post straight to PayPal and work unchanged.
 
 ## First-time setup
 
-Needs the AWS CLI signed in to the charity's AWS account with admin rights. All commands use `us-east-1`,
+Needs the AWS CLI signed in to the charity's AWS account with admin rights, not as the root user.
+[aws-access.md](aws-access.md) walks through setting that up with IAM Identity Center. All commands use `us-east-1`,
 because CloudFront only accepts certificates from that region (the site is still served worldwide).
 
 ```sh
